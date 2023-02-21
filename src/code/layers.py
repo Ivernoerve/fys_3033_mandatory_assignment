@@ -125,26 +125,28 @@ class ConvolutionalLayer(Layers):
 
     @staticmethod
     def conv2d(x: np.ndarray, filt: np.ndarray, out_dim, stride):
-        out = np.zeros(out_dim)
 
-        if (filt.shape[1] % 2 != 0):
-            i_shift = int((filt.shape[1] - 1) / 2)
-            j_shift = int((filt.shape[2] - 1) / 2)
+        if len(out_dim) < 3:
+            out = np.zeros((1, out_dim[0], out_dim[1]))
         else:
-            i_shift = int(filt.shape[1] / 2)
-            j_shift = int(filt.shape[2] / 2)
+            out = np.zeros(out_dim)
 
-        for i in range(out.shape[0]):
-            for j in range(out.shape[1]):
+        for i in range(out.shape[-2]):
+            for j in range(out.shape[-1]):
                 i_org = int((i) * stride)
                 j_org = int((j) * stride)
 
                 neighbourhood_tensor = \
-                    x[:, i_org: i_org+filt.shape[1], j_org: j_org+filt.shape[2]]
+                    x[:, i_org: i_org+filt.shape[-2], j_org: j_org+filt.shape[-1]]
 
-                out[i,j] = (neighbourhood_tensor * filt).sum()
+                out[:, i,j] = (neighbourhood_tensor * filt).sum(axis=(-3,-2,-1))
 
-        return out
+
+
+        if len(out_dim) < 3:
+            return out[0]
+        else:
+            return out
 
     def forward(self, x):
         """
@@ -164,12 +166,10 @@ class ConvolutionalLayer(Layers):
         out = np.zeros((N, C_out, Hout, Wout))
 
         for n, sample in enumerate(x):
-            for c, conv_filter in enumerate(self.w):
-
-                out[n, c, :, :] = self.conv2d(sample,
-                                              conv_filter,
-                                              (Hout, Wout),
-                                              self.stride) + self.b[c]
+            out[n, :, :, :] = self.conv2d(sample,
+                                          self.w,
+                                          (self.w.shape[0], Hout, Wout),
+                                          self.stride) + self.b.reshape(self.b.shape[0], 1, 1)
 
         return out
 
@@ -198,20 +198,16 @@ class ConvolutionalLayer(Layers):
 
         #for dx
         for n, sample in enumerate(delta_pad):
-            for c, conv_filter in enumerate(np.swapaxes(w_flipped, 0, 1)):
-
-                dx[n, c, :, :] += self.conv2d(sample,
-                                              conv_filter,
-                                              x.shape[2:],
+                dx[n, :, :, :] = self.conv2d(sample,
+                                              np.swapaxes(w_flipped, 0, 1),
+                                              dx.shape[1:],
                                               self.stride)
 
         # for dw
         for n, sample in enumerate(np.swapaxes(x, 0, 1)):
-            for c, conv_filter in enumerate(np.swapaxes(delta, 0, 1)):
-
-                self.dw[c, n, :, :] += self.conv2d(sample,
-                                                   conv_filter,
-                                                   self.w.shape[2:],
+                self.dw[:, n, :, :] += self.conv2d(sample,
+                                                   np.swapaxes(delta, 0, 1),
+                                                   (self.w.shape[0], self.w.shape[2], self.w.shape[3]),
                                                    self.stride)
 
         # for db
@@ -270,7 +266,7 @@ class MaxPoolingLayer(Layers):
         delta: loss derivative from above (of size NxCxH_outxW_out)
         dX: gradient of loss wrt. input (of size NxCxHxW)
         """
-
+        
         x = self.store
         N, C, H, W = x.shape
         r_inds = np.arange(0, H-self.pool_r+1, self.stride)
