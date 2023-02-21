@@ -1,0 +1,19 @@
+{
+  "project": "fys_3033_assignment",
+  "language": "python",
+  "path": "/Users/ivernorve/Documents/Utdanning/FYS-3033/mandatory_assignment",
+  "tools": [
+    {
+      "tool": "terminal",
+      "src": "src/"
+    },
+    {
+      "tool": "sublime",
+      "src": "src/"
+    },
+    {
+      "tool": "finder",
+      "src": "."
+    }
+  ]
+}

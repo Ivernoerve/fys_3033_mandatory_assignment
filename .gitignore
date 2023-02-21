@@ -1,0 +1,14 @@
+*~
+.*~
+.DS_Store
+.Rhistory
+.RData
+test.py
+*.csv
+
+venv/
+__pycache__/
+.vscode/
+report/
+
+output
