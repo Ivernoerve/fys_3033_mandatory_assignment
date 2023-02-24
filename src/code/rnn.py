@@ -20,7 +20,7 @@ def undo_grad_fc(fc_layer):
     fc_layer.w += 1e-2 * dw
     fc_layer.b += 1e-2 * db
     return fc_layer, dw, db
-   
+
 class RNN(networks.Network):
     def __init__(self, embedding_dim=256, dim_hid=256, vocab_size=45):
         """
@@ -30,7 +30,7 @@ class RNN(networks.Network):
         self.dim_hid = dim_hid
         self.embedding_dim = embedding_dim
         self.layers = [layers.WordEmbeddingLayer(vocab_size, embedding_dim), layers.LSTMLayer(embedding_dim, dim_hid), layers.FullyConnectedLayer(dim_hid, vocab_size), layers.SoftmaxLossLayer()]
-        
+
         self.output = layers.SoftmaxLayer()
         self.store = None
 
@@ -167,8 +167,6 @@ class RNN(networks.Network):
                     vecToWords(np.array(outputs), dataset)
                     print('******************\n' + bcolors.WARNING + 'Generated character is fed as input to next time step:' + bcolors.ENDC, flush=True)
                     self.test(np.asarray([[outputs[0]]]), h, c, dataset)
-                
-    
 
     def test(self, x, h, c, dataset):
         """

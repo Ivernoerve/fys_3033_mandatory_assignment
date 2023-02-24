@@ -141,8 +141,6 @@ class ConvolutionalLayer(Layers):
 
                 out[:, i,j] = (neighbourhood_tensor * filt).sum(axis=(-3,-2,-1))
 
-
-
         if len(out_dim) < 3:
             return out[0]
         else:
@@ -219,7 +217,6 @@ class ConvolutionalLayer(Layers):
         # Upades the weights and bias using the computed gradients
         self.w -= update_param(self.dw)
         self.b -= update_param(self.db)
-
         return dx
 
 
@@ -266,7 +263,6 @@ class MaxPoolingLayer(Layers):
         delta: loss derivative from above (of size NxCxH_outxW_out)
         dX: gradient of loss wrt. input (of size NxCxHxW)
         """
-        
         x = self.store
         N, C, H, W = x.shape
         r_inds = np.arange(0, H-self.pool_r+1, self.stride)
@@ -315,15 +311,25 @@ class LSTMLayer(Layers):
         cache: A tuple where you can store anything that might be useful for the backward pass
         """
 
-	    ######################################################
-        ######## REPLACE NEXT PART WITH YOUR SOLUTION ########
-        ######################################################
-        next_h = np.random.random_sample(h.shape)
-        next_c = np.random.random_sample(c.shape)
-        cache = (next_h, next_c)
-        ######################################################
-        ######################################################
-        ######################################################
+        if x.ndim == 1:
+            x = np.expand_dims(x, axis=0)
+        if h.ndim == 1:
+            h = np.expand_dims(h, axis=0)
+
+        xh_vec = np.hstack((x, h, np.ones((x.shape[0], 1))))
+        w_xh_vec = np.vstack((self.wx, self.wh, self.b))
+
+        w_xh = xh_vec @ w_xh_vec
+
+        f, i, o = np.hsplit(sigmoid(w_xh[:, self.dim_hid:]), 3)
+
+        c_tilde = np.tanh(w_xh[:, :self.dim_hid])
+
+        next_c = f * c + i * c_tilde
+
+        next_h = o * np.tanh(next_c)
+
+        cache = (next_h, next_c, f, i, o, c_tilde)
 
         return next_h, next_c, cache
 
@@ -331,7 +337,7 @@ class LSTMLayer(Layers):
         """
         Implementation of a single backward step (one timestep)
         delta_h: Upstream gradients from hidden state
-        delta_h: Upstream gradients from cell state
+        delta_c: Upstream gradients from cell state
         store:
           hn: Updated hidden state from forward pass (Nxdim_hid) where dim_hid=#hidden units
           x: Input to layer (Nxdim_in) where N=#samples in batch and dim_in=feature dimension
@@ -347,19 +353,29 @@ class LSTMLayer(Layers):
         db: Gradient of loss wrt. bias vector
         """
         hn, x, h, cn, c, cache = store
+        next_h, next_c, f, i, o, c_tilde = cache
 
-        ######################################################
-        ######## REPLACE NEXT PART WITH YOUR SOLUTION ########
-        ######################################################
-        dx = np.random.random_sample(x.shape)
-        dh = np.random.random_sample(h.shape)
-        dc = np.random.random_sample(c.shape)
-        dwh = np.random.random_sample(self.wh.shape)
-        dwx = np.random.random_sample(self.wx.shape)
-        db = np.random.random_sample(self.b.shape)
-        ######################################################
-        ######################################################
-        ######################################################
+        delta_c_corrected = delta_c + delta_h * o * (1 - np.tanh(next_c) ** 2)
+
+        do = delta_h * np.tanh(next_c) * o * (1 - o)
+        di = delta_c_corrected * c_tilde * i * (1 - i)
+        df = delta_c_corrected * c * f * (1 - f)
+        dc_tilde = delta_c_corrected * i * (1 - c_tilde ** 2)
+
+        delta_gates = np.hstack((dc_tilde, df, di, do))
+
+        dc = delta_c_corrected * f
+        delta_xh = delta_gates @ np.vstack((self.wx, self.wh)).T
+        delta_w_xh = xh_vec = np.hstack((x, h)).T @ delta_gates
+
+        dx = delta_xh[:, :self.dim_in]
+        dh = delta_xh[:, self.dim_in:]
+
+
+        dwx = delta_w_xh[:self.dim_in, :]
+        dwh = delta_w_xh[self.dim_in:, :]
+
+        db = delta_gates.sum(axis=0)
 
         return dx, dh, dc, dwh, dwx, db
 
@@ -382,6 +398,7 @@ class WordEmbeddingLayer(Layers):
         Output: (NxTxE) where E is embedding dimensionality.
         """
         self.store = x
+
         return self.w[x,:]
 
     def backward(self, delta):
@@ -400,10 +417,12 @@ class WordEmbeddingLayer(Layers):
 Activation functions
 """
 
+
 class SoftmaxLossLayer(Layers):
     """
     Implementation of SoftmaxLayer forward pass with cross-entropy loss.
     """
+
     def forward(self, x, y):
         ex = np.exp(x-np.max(x, axis=1, keepdims=True))
         y_hat = ex/np.sum(ex, axis=1, keepdims=True)
@@ -416,6 +435,7 @@ class SoftmaxLossLayer(Layers):
         d_out /= m
 
         return loss, d_out
+
 
 class SoftmaxLayer(Layers):
     """
@@ -432,6 +452,7 @@ class ReluLayer(Layers):
     """
     Implementation of relu activation function.
     """
+
     def forward(self, x):
         """
         x: Input to layer. Any dimension.

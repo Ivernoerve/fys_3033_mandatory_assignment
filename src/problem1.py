@@ -15,10 +15,10 @@ print("In order to validate your implementation of the backward pass we run a \
 gradient check for the layer implementations. Note, that an relative error of less than 1e-6 \
 most likely indicates that the gradient is correct.")
 
-#gradient_checks.check_gradient_conv()
-#gradient_checks.check_gradient_pool()
-#gradient_checks.check_gradient_relu()
-#gradient_checks.check_gradient_fc()
+gradient_checks.check_gradient_conv()
+gradient_checks.check_gradient_pool()
+gradient_checks.check_gradient_relu()
+gradient_checks.check_gradient_fc()
 
 input("If the gradients look ok, press Enter to continue training the model...")
 

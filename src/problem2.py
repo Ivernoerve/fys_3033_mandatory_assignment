@@ -8,7 +8,7 @@ import gradient_checks
 from HE_tweets_loader import load_tweets, vecToWords, load_tweets_concat
 import rnn
 
-dataset = 'shake'
+dataset = 'trump'
 
 print("******************\nSTARTING PROBLEM 2\n******************")
 print("Gradient check for the fully connected layer implementations. Note, that an relative error of less than 1e-6\
@@ -37,10 +37,10 @@ if dataset == 'shake':
     inputs = [char_to_ix[ch] for ch in data[p:p+seq_length]]
     targets = [char_to_ix[ch] for ch in data[p+1:p+seq_length+1]]
     
-    xs = np.zeros((vocab_size,data_size),dtype=np.int)
+    xs = np.zeros((vocab_size,data_size),dtype=int)
     
     for t in range(data_size):
-        xs[inputs[t], t] = np.int(1)
+        xs[inputs[t], t] = int(1)
 
     seq_length = 50
     model = rnn.RNN(vocab_size=vocab_size)
